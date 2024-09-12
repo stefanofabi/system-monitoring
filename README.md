@@ -25,6 +25,6 @@ Then set up a cron every 5 minutes:
 ```bash
 crontab -e
 
-*/5 * * * * cd /root/system-monitoring && /usr/bin/python3 monitor.py >> /root/system-monitoring/monitor.log 2>&1
+*/5 * * * * cd /root/system-monitoring && /root/system-monitoring/run_monitor.sh >> /root/system-monitoring/monitor.log 2>&1
 
 ```

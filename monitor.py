@@ -2,6 +2,7 @@ import psutil
 import time
 import mysql.connector
 import json
+from datetime import datetime, timedelta
 
 # Load database configuration from a JSON file
 def load_db_config():
@@ -22,6 +23,25 @@ def connect_db():
     )
     return connection
 
+# Clean old records from the database
+def clean_old_records():
+    connection = connect_db()
+    cursor = connection.cursor()
+
+    # Calculate the timestamp for 30 days ago
+    cutoff_date = datetime.now() - timedelta(days=30)
+    cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Delete records older than the cutoff timestamp
+    cursor.execute("""
+        DELETE FROM system_stats
+        WHERE timestamp < %s
+    """, (cutoff_timestamp,))
+
+    connection.commit()
+    cursor.close()
+    connection.close()
+
 # Save system stats to the database
 def save_to_db(cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps):
     connection = connect_db()
@@ -32,8 +52,8 @@ def save_to_db(cpu_percentage, cpu_total, memory_total, memory_used, memory_avai
 
     # Insert data into the system_stats table
     cursor.execute("""
-        INSERT INTO system_stats (cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO system_stats (timestamp, cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
+        VALUES (NOW(), %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (cpu_percentage_json, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps))
 
     connection.commit()
@@ -96,4 +116,6 @@ def display_and_save_info():
 
 # Main function
 if __name__ == "__main__":
+    # Clean old records before saving new ones
+    clean_old_records()
     display_and_save_info()

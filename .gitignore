@@ -1,0 +1,20 @@
+# Entorno virtual
+myenv/
+
+# Archivos de compilación
+*.pyc
+*.pyo
+*.pyd
+
+# Configuraciones del IDE
+.vscode/
+.idea/
+
+# Archivos de logs
+*.log
+
+# Archivos temporales
+*.tmp
+
+# Archivo de configuracion
+config.json

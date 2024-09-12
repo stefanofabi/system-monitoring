@@ -3,4 +3,4 @@
 source /root/system-monitoring/myenv/bin/activate
 
 # Ejecutar el script Python
-python /root/system-monitoring/monitor.py
+python3 /root/system-monitoring/monitor.py

@@ -10,10 +10,10 @@ This project is a system monitoring tool that runs on a server and logs system u
 
 ## Installation
 ```bash
+apt install python3.11-venv lm-sensors -y
+
 git clone https://github.com/stefanofabi/system-monitoring.git
 cd system-monitoring
-
-apt install python3.11-venv -y
 python3 -m venv myenv
 source myenv/bin/activate
 pip install -r requirements.txt

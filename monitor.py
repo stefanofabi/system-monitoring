@@ -43,18 +43,15 @@ def clean_old_records():
     connection.close()
 
 # Save system stats to the database
-def save_to_db(cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps):
+def save_to_db(cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp):
     connection = connect_db()
     cursor = connection.cursor()
 
-    # Convert the list of CPU percentages to a JSON string
-    cpu_percentage_json = json.dumps(cpu_percentage)
-
     # Insert data into the system_stats table
     cursor.execute("""
-        INSERT INTO system_stats (timestamp, cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
-        VALUES (NOW(), %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (cpu_percentage_json, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps))
+        INSERT INTO system_stats (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp))
 
     connection.commit()
     cursor.close()
@@ -62,16 +59,18 @@ def save_to_db(cpu_percentage, cpu_total, memory_total, memory_used, memory_avai
 
 # Functions to collect system information
 def get_cpu_usage():
-    cpu_percentage = psutil.cpu_percent(interval=1, percpu=True)
-    cpu_total = psutil.cpu_percent(interval=1) 
-    return cpu_percentage, cpu_total
+    cpu_total = psutil.cpu_percent(interval=1)
+    return cpu_total
 
 def get_memory():
     memory = psutil.virtual_memory()
-    total_mb = memory.total / (1024 ** 2)
-    used_mb = memory.used / (1024 ** 2)
-    available_mb = memory.available / (1024 ** 2)
-    return total_mb, used_mb, available_mb
+    memory_used_percentage = memory.percent  # Get the percentage of memory used directly from psutil
+    return memory_used_percentage
+
+def get_disk_usage():
+    disk = psutil.disk_usage('/')
+    disk_used_percentage = disk.percent  # Get the percentage of disk used directly from psutil
+    return disk_used_percentage
 
 def get_disk_io():
     previous_disk = psutil.disk_io_counters()
@@ -93,26 +92,42 @@ def get_network_io():
     network_transmit_mbps = network_transmit_mb * 8
     return network_receive_mbps, network_transmit_mbps
 
+def get_cpu_temp():
+    try:
+        temps = psutil.sensors_temperatures()
+        if 'coretemp' in temps:
+            # On some systems, temperatures are reported under 'coretemp'
+            temp = temps['coretemp'][0].current
+        elif 'cpu_thermal' in temps:
+            # On some systems, temperatures are reported under 'cpu_thermal'
+            temp = temps['cpu_thermal'][0].current
+        else:
+            temp = None
+    except (AttributeError, KeyError):
+        temp = None
+    return temp
+
 # Function to display and save system information
 def display_and_save_info():
-    cpu_percentage, cpu_total = get_cpu_usage()
-    memory_total, memory_used, memory_available = get_memory()
+    cpu = get_cpu_usage()
+    memory_used_percentage = get_memory()
+    disk_used_percentage = get_disk_usage()
     disk_read, disk_write = get_disk_io()
     network_receive_mbps, network_transmit_mbps = get_network_io()
+    cpu_temp = get_cpu_temp()
 
     # Display results
-    print(f"CPU Usage by Core: {cpu_percentage}")
-    print(f"Total CPU Usage: {cpu_total}%")
-    print(f"Total Memory: {memory_total:.0f} MB")
-    print(f"Used Memory: {memory_used:.0f} MB")
-    print(f"Available Memory: {memory_available:.0f} MB")
+    print(f"Total CPU Usage: {cpu}%")
+    print(f"Memory Used: {memory_used_percentage:.2f}%")
+    print(f"Disk Used: {disk_used_percentage:.2f}%")
     print(f"Disk Read Speed: {disk_read:.2f} MB/s")
     print(f"Disk Write Speed: {disk_write:.2f} MB/s")
     print(f"Network Receive Speed: {network_receive_mbps:.2f} Mbps")
     print(f"Network Transmit Speed: {network_transmit_mbps:.2f} Mbps")
+    print(f"CPU Temperature: {cpu_temp}°C" if cpu_temp is not None else "CPU Temperature: Not Available")
 
     # Save results to the database
-    save_to_db(cpu_percentage, cpu_total, memory_total, memory_used, memory_available, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
+    save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)
 
 # Main function
 if __name__ == "__main__":

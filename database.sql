@@ -1,9 +1,3 @@
-CREATE DATABASE system_monitoring
-CHARACTER SET utf8mb4
-COLLATE utf8mb4_general_ci;
-
-USE system_monitoring;
-
 CREATE TABLE system_stats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cpu_percentage JSON,

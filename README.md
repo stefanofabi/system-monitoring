@@ -10,11 +10,15 @@ This project is a system monitoring tool that runs on a server and logs system u
 
 ## Installation
 ```bash
-git clone git@github.com:stefanofabi/system-monitoring.git
+git clone https://github.com/stefanofabi/system-monitoring.git
 cd system-monitoring
+
+apt install python3.11-venv -y
 python3 -m venv myenv
 source myenv/bin/activate
 pip install -r requirements.txt
+
+chmod +x run_monitor.sh
 ```
 
 Then set up a cron every 5 minutes:

@@ -6,19 +6,36 @@ This project is a system monitoring tool that runs on a server and logs system u
 
 - Python 3.x
 - `pip`
+- MySQL database
 - Access to cron (to schedule the script execution)
 
 ## Installation
 ```bash
+# Install linux dependencies
 apt install python3.11-venv lm-sensors -y
 
+# Clone my repository
+cd /root
 git clone https://github.com/stefanofabi/system-monitoring.git
 cd system-monitoring
+
+# Enter the virtual environment
 python3 -m venv myenv
 source myenv/bin/activate
+
+# Install python dependencies
 pip install -r requirements.txt
 
+# Configure the MySQL database
+cp config.json.example config.json
+nano config.json
+
+# Import the mysql database
+mysql -u system_monitoring -p system_monitoring < /root/system-monitoring/database.sql
+
+# Run the script to verify that everything is ok
 chmod +x run_monitor.sh
+./run_monitor.sh
 ```
 
 Then set up a cron every 5 minutes:

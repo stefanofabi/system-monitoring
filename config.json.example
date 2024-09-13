@@ -1,6 +1,6 @@
 {
-    "host": "",
-    "user": "",
+    "host": "localhost",
+    "user": "system_monitoring",
     "password": "",
     "database": "system_monitoring",
     "charset": "utf8mb4",

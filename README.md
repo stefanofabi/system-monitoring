@@ -12,7 +12,7 @@ This project is a system monitoring tool that runs on a server and logs system u
 ## Installation
 ```bash
 # Install linux dependencies
-apt install python3-venv lm-sensors -y
+apt install git python3-venv lm-sensors -y
 
 # Clone my repository
 cd /root

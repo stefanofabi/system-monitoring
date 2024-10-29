@@ -1,5 +1,5 @@
 # System Monitoring Script
-This project is a [4evergaming](https://4evergaming.com.ar) system monitoring tool that runs on a local server and logs system usage data. The setup includes a Python virtual environment and a cron job to automatically run the script every 5 minutes.
+This project is a [4evergaming](https://4evergaming.com.ar/server-status) system monitoring tool that runs on a local server and logs system usage data. The setup includes a Python virtual environment and a cron job to automatically run the script every 5 minutes.
 
 ## Requirements
 

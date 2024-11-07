@@ -1,8 +1,36 @@
 {
-    "host": "localhost",
-    "user": "system_monitoring",
-    "password": "",
-    "database": "system_monitoring",
-    "charset": "utf8mb4",
-    "collation": "utf8mb4_general_ci"
+    "database": {
+        "host": "localhost",
+        "user": "system_monitoring",
+        "password": "",
+        "database": "system_monitoring",
+        "charset": "utf8mb4",
+        "collation": "utf8mb4_general_ci"
+    },
+    "sensors": [
+        {
+            "name": "CABASE",
+            "ip": "nacional.4evergaming.com.ar"
+        },
+        {
+            "name": "Internacional",
+            "ip": "internacional.4evergaming.com.ar"
+        },
+        {
+            "name": "Telecom Argentina",
+            "ip": "telecom.4evergaming.com.ar"
+        },
+        {
+            "name": "Claro",
+            "ip": "claro.4evergaming.com.ar"
+        },
+        {
+            "name": "Telecentro",
+            "ip": "telecentro.4evergaming.com.ar"
+        },
+        {
+            "name": "Gigared",
+            "ip": "gigared.4evergaming.com.ar"
+        }
+    ]
 }

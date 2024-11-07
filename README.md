@@ -35,6 +35,9 @@ mysql -u system_monitoring -p system_monitoring < /root/system-monitoring/databa
 # Run the script to verify that everything is ok
 chmod +x run_monitor.sh
 ./run_monitor.sh
+
+chmod +x run_ping_sensors.sh
+./run_ping_sensors.sh
 ```
 
 Then set up a cron every 5 minutes:
@@ -42,5 +45,7 @@ Then set up a cron every 5 minutes:
 crontab -e
 
 */5 * * * * cd /root/system-monitoring && /root/system-monitoring/run_monitor.sh >> /root/system-monitoring/monitor.log 2>&1
+
+*/1 * * * * cd /root/system-monitoring && /root/system-monitoring/run_ping_sensors.sh >> /root/system-monitoring/ping_sensors.log 2>&1
 
 ```

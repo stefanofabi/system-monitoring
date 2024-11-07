@@ -13,14 +13,16 @@ def load_db_config():
 # Connect to the MySQL database
 def connect_db():
     config = load_db_config()
+    db_config = config['database']
     connection = mysql.connector.connect(
-        host=config['host'],
-        user=config['user'],
-        password=config['password'],
-        database=config['database'],
-        charset=config['charset'],
-        collation=config['collation']
+        host=db_config['host'],
+        user=db_config['user'],
+        password=db_config['password'],
+        database=db_config['database'],
+        charset=db_config['charset'],
+        collation=db_config['collation']
     )
+    
     return connection
 
 # Clean old records from the database

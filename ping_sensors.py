@@ -45,15 +45,12 @@ def insert_alert(phone, message):
     connection = connect_db('whatsapp')  # Connect to the WhatsApp DB
     cursor = connection.cursor()
 
-    # Get the current date and time
-    current_datetime = datetime.now().strftime('[%d %b %Y %H:%M]') + "Hs"
-
     # Load the config to get node info
     config = load_config()
     node = config.get('node', 'Unknown Node')
 
     # Modify the message to include the node and timestamp
-    message_with_timestamp_and_node = f"*[{node}]* {message} \nDate: {current_datetime}"
+    message_with_timestamp_and_node = f"*[{node}]* {message} \nDate: {get_current_time()}"
 
     # Insert alert into the alerts table
     cursor.execute(""" 

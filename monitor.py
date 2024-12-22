@@ -11,23 +11,22 @@ def load_db_config():
     return config
 
 # Connect to the MySQL database
-def connect_db():
+def connect_db(database):
     config = load_db_config()
-    db_config = config['database']
+    db_config = config['databases'][database]
     connection = mysql.connector.connect(
         host=db_config['host'],
         user=db_config['user'],
         password=db_config['password'],
         database=db_config['database'],
-        charset=db_config['charset'],
-        collation=db_config['collation']
+        charset=db_config['charset'] if 'charset' in db_config else 'utf8mb4',  # Default charset
+        collation=db_config['collation'] if 'collation' in db_config else 'utf8mb4_unicode_ci'  # Default collation
     )
-    
     return connection
 
 # Clean old records from the database
 def clean_old_records():
-    connection = connect_db()
+    connection = connect_db('system_monitoring')
     cursor = connection.cursor()
 
     # Calculate the timestamp for 30 days ago
@@ -35,18 +34,15 @@ def clean_old_records():
     cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
 
     # Delete records older than the cutoff timestamp
-    cursor.execute("""
-        DELETE FROM system_stats
-        WHERE timestamp < %s
-    """, (cutoff_timestamp,))
-
+    cursor.execute("""DELETE FROM system_stats WHERE timestamp < %s""", (cutoff_timestamp,))
+    
     connection.commit()
     cursor.close()
     connection.close()
 
-# Save system stats to the database
+# Save system stats to the system_monitoring database
 def save_to_db(cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp):
-    connection = connect_db()
+    connection = connect_db('system_monitoring')
     cursor = connection.cursor()
 
     # Insert data into the system_stats table
@@ -58,6 +54,64 @@ def save_to_db(cpu, memory, disk, disk_read, disk_write, network_receive, networ
     connection.commit()
     cursor.close()
     connection.close()
+
+# Insert alert into the whatsapp database
+def insert_alert(phone, message):
+    connection = connect_db('whatsapp')
+    cursor = connection.cursor()
+
+    current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    config = load_db_config()
+    node = config.get('node', 'Unknown Node') 
+    
+    message_with_timestamp_and_node = f"[{node}] {message} (Date: {current_datetime})"
+    
+    # Insert alert into the alerts table
+    cursor.execute("""
+        INSERT INTO alerts (phone, message)
+        VALUES (%s, %s)
+    """, (phone, message_with_timestamp_and_node))
+    
+    connection.commit()
+    cursor.close()
+    connection.close()
+
+# Check thresholds and insert alerts if needed
+def check_thresholds(cpu, memory, disk, network):
+    config = load_db_config()
+    thresholds = config['thresholds']
+    notifications = config['notifications']
+    
+    # List to store alert messages
+    alert_messages = []
+
+    # Check CPU usage
+    if cpu > thresholds['cpu']:
+        alert_messages.append(f"ALERT: CPU usage is {cpu}% (Threshold: {thresholds['cpu']}%)")
+    
+    # Check Memory usage
+    if memory > thresholds['memory']:
+        alert_messages.append(f"ALERT: Memory usage is {memory}% (Threshold: {thresholds['memory']}%)")
+    
+    # Check Disk usage
+    if disk > thresholds['disk']:
+        alert_messages.append(f"ALERT: Disk usage is {disk}% (Threshold: {thresholds['disk']}%)")
+    
+    # Check Network usage
+    if network > thresholds['network']:
+        alert_messages.append(f"ALERT: Network usage is {network} Mbps (Threshold: {thresholds['network']} Mbps)")
+
+    # If there are any alert messages, print and send them
+    if alert_messages:
+        # Print the alert messages to the console
+        for message in alert_messages:
+            print(message)
+
+        # Insert the messages into the database for all phones
+        for phone in notifications:
+            for message in alert_messages:
+                insert_alert(phone, message)
 
 # Functions to collect system information
 def get_cpu_usage():
@@ -130,6 +184,9 @@ def display_and_save_info():
 
     # Save results to the database
     save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)
+    
+    # Check thresholds and insert alerts if needed
+    check_thresholds(cpu, memory_used_percentage, disk_used_percentage, network_receive_mbps)
 
 # Main function
 if __name__ == "__main__":

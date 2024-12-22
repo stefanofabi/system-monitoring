@@ -1,36 +1,59 @@
 {
-    "database": {
-        "host": "localhost",
-        "user": "system_monitoring",
-        "password": "",
-        "database": "system_monitoring",
-        "charset": "utf8mb4",
-        "collation": "utf8mb4_general_ci"
+    "node": "",
+    "databases": {
+        "system_monitoring": {
+            "host": "",
+            "user": "",
+            "password": "",
+            "database": ""
+        },
+        "whatsapp": {
+            "host": "",
+            "user": "",
+            "password": "",
+            "database": ""
+        }
+    },
+    "notifications": [
+        ""
+    ],
+    "thresholds": {
+        "cpu": 85,
+        "memory": 90,
+        "disk": 90,
+        "network": 100,
+        "io": 50
     },
     "sensors": [
         {
             "name": "CABASE",
-            "ip": "nacional.4evergaming.com.ar"
+            "ip": "cabase.4evergaming.com.ar",
+            "threshold": 30
         },
         {
-            "name": "Internacional",
-            "ip": "internacional.4evergaming.com.ar"
+            "name": "Stormwall",
+            "ip": "stormwall.4evergaming.com.ar",
+            "threshold": 200
         },
         {
             "name": "Telecom Argentina",
-            "ip": "telecom.4evergaming.com.ar"
+            "ip": "telecom.4evergaming.com.ar",
+            "threshold": 30
         },
         {
             "name": "Claro",
-            "ip": "claro.4evergaming.com.ar"
+            "ip": "claro.4evergaming.com.ar",
+            "threshold": 30
         },
         {
             "name": "Telecentro",
-            "ip": "telecentro.4evergaming.com.ar"
+            "ip": "telecentro.4evergaming.com.ar",
+            "threshold": 30
         },
         {
             "name": "Gigared",
-            "ip": "gigared.4evergaming.com.ar"
+            "ip": "gigared.4evergaming.com.ar",
+            "threshold": 30
         }
     ]
 }

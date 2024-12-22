@@ -31,7 +31,7 @@ def save_ping_to_db(sensor_name, response_time):
     cursor = connection.cursor()
 
     # Insert data into the latencies table
-    cursor.execute("""
+    cursor.execute(""" 
         INSERT INTO latencies (sensor_name, response_time)
         VALUES (%s, %s)
     """, (sensor_name, response_time))
@@ -46,7 +46,7 @@ def insert_alert(phone, message):
     cursor = connection.cursor()
 
     # Get the current date and time
-    current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M Hs')
+    current_datetime = datetime.now().strftime('[%d %b %Y %H:%M]') + "Hs"
 
     # Load the config to get node info
     config = load_config()
@@ -56,7 +56,7 @@ def insert_alert(phone, message):
     message_with_timestamp_and_node = f"*[{node}]* {message} \nDate: {current_datetime}"
 
     # Insert alert into the alerts table
-    cursor.execute("""
+    cursor.execute(""" 
         INSERT INTO messages (phone, message)
         VALUES (%s, %s)
     """, (phone, message_with_timestamp_and_node))
@@ -75,7 +75,7 @@ def clean_old_pings():
     cutoff_timestamp = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
 
     # Delete records older than the cutoff date
-    cursor.execute("""
+    cursor.execute(""" 
         DELETE FROM latencies
         WHERE timestamp < %s
     """, (cutoff_timestamp,))
@@ -84,21 +84,39 @@ def clean_old_pings():
     cursor.close()
     connection.close()
 
-# Function to ping a sensor and return the result
+# Function to make up to 4 ping attempts and return the result
 def ping_sensor(ip_address):
-    try:
-        # Perform the ping using ping3
-        response_time = ping(ip_address)
-        
-        # If the response_time is None, it means the ping failed, return 0
-        if response_time is None:
-            return 0
-        
-        # Truncate the response time to two decimal places
-        return math.trunc(response_time * 1000)
-    except Exception as e:
-        # Return 0 if any error occurs (e.g., timeout or unreachable)
-        return 0
+    max_attempts = 4  # Maximum number of attempts
+    for attempt in range(max_attempts):
+        try:
+            # Perform the ping
+            response_time = ping(ip_address)
+            
+            # If the response time is None, it means the ping failed
+            if response_time is None:
+                if attempt == max_attempts - 1:
+                    # If it's the last attempt and it fails, return 0
+                    return 0
+                else:
+                    # If it's not the last attempt, continue trying
+                    continue
+
+            # Truncate the response time to two decimal places (milliseconds)
+            return math.trunc(response_time * 1000)
+        except Exception as e:
+            # If an error occurs (e.g., timeout or unreachable address)
+            if attempt == max_attempts - 1:
+                # If it's the last attempt and it fails, return 0
+                return 0
+            else:
+                # If it's not the last attempt, continue trying
+                continue
+
+    return 0  # If all attempts fail, return 0
+
+# Function to get the current date and time as a formatted string
+def get_current_time():
+    return datetime.now().strftime('[%d %b %Y %H:%M Hs]')
 
 # Function to check and notify if the ping exceeds the threshold or if the ping is 0
 def check_ping_threshold(sensor_name, response_time, threshold):
@@ -110,13 +128,13 @@ def check_ping_threshold(sensor_name, response_time, threshold):
         for phone in config['notifications']:
             message = f"ALERT: {sensor_name} did not respond!"
             insert_alert(phone, message)
-        print(f"ALERT: {sensor_name} did not respond!")
+        print(f"{get_current_time()} - ALERT: {sensor_name} did not respond!")
     elif response_time > threshold:
         # If ping exceeds threshold, send an alert
         for phone in config['notifications']:
             message = f"ALERT: {sensor_name} ping is too high! \nResponse time: {response_time} ms"
             insert_alert(phone, message)
-        print(f"ALERT: {sensor_name} ping is too high. Response time: {response_time} ms")
+        print(f"{get_current_time()} - ALERT: {sensor_name} ping is too high. Response time: {response_time} ms")
 
 # Function to collect ping data for all sensors
 def collect_and_save_ping_data():
@@ -131,9 +149,9 @@ def collect_and_save_ping_data():
         
         # Simplified output for online/offline status with color
         if response_time == 0:
-            print(f"Pinging {sensor['name']} ..... \033[31mOFFLINE\033[0m")  # Red for OFFLINE
+            print(f"{get_current_time()} Pinging {sensor['name']} ..... \033[31mOFFLINE\033[0m")  # Red for OFFLINE
         else:
-            print(f"Pinging {sensor['name']} ..... \033[32mONLINE {response_time}ms\033[0m")  # Green for ONLINE
+            print(f"{get_current_time()} Pinging {sensor['name']} ..... \033[32mONLINE {response_time}ms\033[0m")  # Green for ONLINE
 
         # Save the ping result to the system_monitoring database
         save_ping_to_db(sensor['name'], response_time)

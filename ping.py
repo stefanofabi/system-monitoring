@@ -26,15 +26,15 @@ def connect_db(database):
     return connection
 
 # Save ping result to the system_monitoring database 
-def save_ping_to_db(sensor_name, response_time):
+def save_ping_to_db(sensor, response_time):
     connection = connect_db('system_monitoring')  # Connect to the system_monitoring DB
     cursor = connection.cursor()
 
     # Insert data into the latencies table
     cursor.execute(""" 
-        INSERT INTO latencies (sensor_name, response_time)
+        INSERT INTO latencies (sensor_id, response_time)
         VALUES (%s, %s)
-    """, (sensor_name, response_time))
+    """, (sensor['id'], response_time))
 
     connection.commit()
     cursor.close()
@@ -100,27 +100,63 @@ def get_current_time():
     return datetime.now().strftime('%d %b %Y %H:%M Hs')
 
 # Function to check and notify if the ping exceeds the threshold or if the ping is 0
-def check_ping_threshold(sensor_name, response_time, threshold):
+def check_ping_threshold(sensor, response_time):
     config = load_config()
-    node = config.get('node', 'Unknown Node')  # Get the node name for context
+    node = config.get('node', 'Unknown Node')
+    failure_threshold = config['thresholds']['failures']
 
+    connection = connect_db('system_monitoring')  # Connect to the system_monitoring DB
+    cursor = connection.cursor()
+
+    # If the ping response time is 0 (offline)
     if response_time == 0:
-        # If ping is 0, send an alert saying the node is offline
-        message = f"⚠️ *{sensor_name} not responding* ⚠️ \n\n*Node:* {node} \n*Date:* {get_current_time()}"
-        insert_alert(config['ping-alerts-channel'], message)
+        # Increment the 'failed' count in the sensor object
+        sensor['failed'] += 1
 
-        print(f"[{get_current_time()}] - {sensor_name} not responding on {node}")
-    elif response_time > threshold:
+        # Send an alert that the sensor is not responding
+        message = f"⚠️ *{sensor['name']} not responding* ⚠️ \n\n*Node:* {node} \n*Date:* {get_current_time()}"
+        insert_alert(config['ping-alerts-channel'], message)
+        print(f"[{get_current_time()}] - {sensor['name']} not responding on {node}")
+
+        # If the 'failed' count exceeds the failure threshold, deactivate the sensor
+        if sensor['failed'] >= failure_threshold:
+            cursor.execute("""
+                UPDATE sensors
+                SET active = FALSE
+                WHERE id = %s
+            """, (sensor['id'],))
+
+            message = f"[{get_current_time()}] - {sensor['name']} has been deactivated due to multiple failures"
+            insert_alert(config['ping-alerts-channel'], message)
+
+            print(f"\033[31m[{get_current_time()}] - {sensor['name']} has been deactivated due to multiple failures\033[0m")
+
+    else:
+        # If the ping is successful (response time > 0), reset 'failed' count to 0
+        sensor['failed'] = 0
+
         # If ping exceeds threshold, send an alert
-        message = f"⚠️ *{sensor_name} ping is too high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
-        insert_alert(config['ping-alerts-channel'], message)
+        if response_time > sensor['threshold']:
+            message = f"⚠️ *{sensor['name']} ping is high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
+            insert_alert(config['ping-alerts-channel'], message)
 
-        print(f"[{get_current_time()}] - {sensor_name} ping is too high on {node}. Response time: {response_time} ms")
+            print(f"[{get_current_time()}] - {sensor['name']} ping is high on {node}. Response time: {response_time} ms")
 
-# Function to collect ping data for all sensors
+    # Update the 'failed' count and 'active' status in the database
+    cursor.execute("""
+        UPDATE sensors
+        SET failed = %s
+        WHERE id = %s
+    """, (sensor['failed'], sensor['id']))
+
+    connection.commit()  # Commit the changes
+    cursor.close()
+    connection.close()
+
+# Function to collect ping data for all sensors (updated)
 def collect_and_save_ping_data():
-    config = load_config()  # Load the configuration
-    sensors = config['sensors']  # Get the list of sensors
+    # Get the list of active sensors from the database
+    sensors = get_sensors_from_db()
 
     # Clean old pings before collecting new data
     clean_old_pings()
@@ -135,10 +171,28 @@ def collect_and_save_ping_data():
             print(f"[{get_current_time()}] Pinging {sensor['name']} ..... \033[32mONLINE {response_time}ms\033[0m")  # Green for ONLINE
 
         # Save the ping result to the system_monitoring database
-        save_ping_to_db(sensor['name'], response_time)
+        save_ping_to_db(sensor, response_time)
 
         # Check if the ping exceeds the threshold or is 0, and send an alert if needed
-        check_ping_threshold(sensor['name'], response_time, sensor['threshold'])
+        check_ping_threshold(sensor, response_time)
+
+# Function to get the sensors from the database with their thresholds
+def get_sensors_from_db():
+    connection = connect_db('system_monitoring')  # Connect to the system_monitoring DB
+    cursor = connection.cursor(dictionary=True)
+
+    # Select all sensors from the sensors table, including the thresholds
+    cursor.execute("""
+        SELECT id, name, ip, threshold, failed, active
+        FROM sensors
+        WHERE active = TRUE  -- Only get active sensors
+    """)
+    
+    sensors = cursor.fetchall()  # Fetch all the sensors
+    cursor.close()
+    connection.close()
+    
+    return sensors
 
 # Main function to run the ping process
 if __name__ == "__main__":

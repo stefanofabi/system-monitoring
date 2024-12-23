@@ -9,11 +9,30 @@ CREATE TABLE system_stats (
     network_transmit FLOAT,
     cpu_temp FLOAT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+);
+
+CREATE TABLE sensors (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    ip VARCHAR(255) NOT NULL,
+    threshold INT NOT NULL,
+    failed INT DEFAULT 0, 
+    active BOOLEAN DEFAULT FALSE 
+);
 
 CREATE TABLE latencies (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    sensor_name VARCHAR(255),
-    response_time FLOAT,  -- Time in ms, or 0 if ping fails
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    sensor_id INT NOT NULL, 
+    response_time FLOAT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sensor_id) REFERENCES sensors(id) ON DELETE CASCADE
 );
+
+INSERT INTO sensors (name, ip, threshold)
+VALUES
+    ('CABASE', 'cabase.4evergaming.com.ar', 30),
+    ('Stormwall', 'stormwall.4evergaming.com.ar', 250),
+    ('Telecom Argentina', 'telecom.4evergaming.com.ar', 30),
+    ('Claro', 'claro.4evergaming.com.ar', 30),
+    ('Telecentro', 'telecentro.4evergaming.com.ar', 30),
+    ('Gigared', 'gigared.4evergaming.com.ar', 30);

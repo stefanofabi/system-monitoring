@@ -22,38 +22,7 @@
         "memory": 90,
         "disk": 90,
         "network": 100,
-        "io": 50
-    },
-    "sensors": [
-        {
-            "name": "CABASE",
-            "ip": "cabase.4evergaming.com.ar",
-            "threshold": 30
-        },
-        {
-            "name": "Stormwall",
-            "ip": "stormwall.4evergaming.com.ar",
-            "threshold": 200
-        },
-        {
-            "name": "Telecom Argentina",
-            "ip": "telecom.4evergaming.com.ar",
-            "threshold": 30
-        },
-        {
-            "name": "Claro",
-            "ip": "claro.4evergaming.com.ar",
-            "threshold": 30
-        },
-        {
-            "name": "Telecentro",
-            "ip": "telecentro.4evergaming.com.ar",
-            "threshold": 30
-        },
-        {
-            "name": "Gigared",
-            "ip": "gigared.4evergaming.com.ar",
-            "threshold": 30
-        }
-    ]
+        "io": 50,
+        "failures":  5
+    }
 }

@@ -3,6 +3,7 @@ import time
 import mysql.connector
 import json
 from datetime import datetime, timedelta
+import math
 
 # Load database configuration from a JSON file
 def load_config():
@@ -111,11 +112,11 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
     
     # Check network receive rate
     if network_receive_mbps > thresholds['network']:
-        alert_message += f"Network receive usage is {network_receive_mbps} Mbps\n"
+        alert_message += f"Network receive usage is {math.trunc(network_receive_mbps)} Mbps\n"
 
     # Check network transmit rate
     if network_transmit_mbps > thresholds['network']:
-        alert_message += f"Network transmit usage is {network_transmit_mbps} Mbps\n"
+        alert_message += f"Network transmit usage is {math.trunc(network_transmit_mbps)} Mbps\n"
 
     # If there are any alert messages, send and print them
     if alert_message:

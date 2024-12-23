@@ -78,7 +78,7 @@ def insert_alert(phone, message):
     connection.close()
 
 # Check thresholds and insert alerts if needed
-def check_thresholds(cpu, cpu_temp, memory, disk, network):
+def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps):
     config = load_db_config()
     thresholds = config['thresholds']
     
@@ -93,16 +93,25 @@ def check_thresholds(cpu, cpu_temp, memory, disk, network):
         alert_messages.append(f"CPU TEMPERATURE usage is {cpu_temp}% (Threshold: {thresholds['temperature']}ºC)")
     
     # Check Memory usage
-    if memory > thresholds['memory']:
-        alert_messages.append(f"Memory usage is {memory}% (Threshold: {thresholds['memory']}%)")
+    if memory_used_percentage > thresholds['memory']:
+        alert_messages.append(f"Memory usage is {memory_used_percentage}% (Threshold: {thresholds['memory']}%)")
     
     # Check Disk usage
-    if disk > thresholds['disk']:
-        alert_messages.append(f"Disk usage is {disk}% (Threshold: {thresholds['disk']}%)")
+    if disk_used_percentage > thresholds['disk']:
+        alert_messages.append(f"Disk usage is {disk_used_percentage}% (Threshold: {thresholds['disk']}%)")
+    
+    if disk_read > thresholds['io']:
+        alert_messages.append(f"Disk read usage is {disk_read}% (Threshold: {thresholds['io']}MB/s)")
+    
+    if disk_write > thresholds['io']:
+        alert_messages.append(f"Disk usage is {disk_write}% (Threshold: {thresholds['io']}MB/s)")
     
     # Check Network usage
-    if network > thresholds['network']:
-        alert_messages.append(f"Network usage is {network} Mbps (Threshold: {thresholds['network']} Mbps)")
+    if network_receive_mbps > thresholds['network']:
+        alert_messages.append(f"Network receive usage is {network_receive_mbps} Mbps (Threshold: {thresholds['network']} Mbps)")
+
+    if network_transmit_mbps > thresholds['network']:
+        alert_messages.append(f"Network transmit is {network_transmit_mbps} Mbps (Threshold: {thresholds['network']} Mbps)")
 
     # If there are any alert messages, print and send them
     if alert_messages:
@@ -175,19 +184,19 @@ def display_and_save_info():
 
     # Display results
     print(f"Total CPU Usage: {cpu}%")
+    print(f"CPU Temperature: {cpu_temp}°C" if cpu_temp is not None else "CPU Temperature: Not Available")
     print(f"Memory Used: {memory_used_percentage:.2f}%")
     print(f"Disk Used: {disk_used_percentage:.2f}%")
     print(f"Disk Read Speed: {disk_read:.2f} MB/s")
     print(f"Disk Write Speed: {disk_write:.2f} MB/s")
     print(f"Network Receive Speed: {network_receive_mbps:.2f} Mbps")
     print(f"Network Transmit Speed: {network_transmit_mbps:.2f} Mbps")
-    print(f"CPU Temperature: {cpu_temp}°C" if cpu_temp is not None else "CPU Temperature: Not Available")
-
+    
     # Save results to the database
     save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)
     
     # Check thresholds and insert alerts if needed
-    check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, network_receive_mbps)
+    check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
 
 # Main function
 if __name__ == "__main__":

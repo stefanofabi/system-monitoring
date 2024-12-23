@@ -17,7 +17,7 @@
     "resources-alerts-channel": "",
     "ping-alerts-channel": "",
     "thresholds": {
-        "cpu": 50,
+        "cpu": 30,
         "temperature": 85,
         "memory": 90,
         "disk": 90,

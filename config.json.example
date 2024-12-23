@@ -14,11 +14,11 @@
             "database": ""
         }
     },
-    "notifications": [
-        ""
-    ],
+    "resources-alerts-channel": "",
+    "ping-alerts-channel": "",
     "thresholds": {
-        "cpu": 85,
+        "cpu": 50,
+        "temperature": 85,
         "memory": 90,
         "disk": 90,
         "network": 100,

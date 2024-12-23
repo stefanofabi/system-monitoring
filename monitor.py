@@ -78,29 +78,31 @@ def insert_alert(phone, message):
     connection.close()
 
 # Check thresholds and insert alerts if needed
-def check_thresholds(cpu, memory, disk, network):
+def check_thresholds(cpu, cpu_temp, memory, disk, network):
     config = load_db_config()
     thresholds = config['thresholds']
-    notifications = config['notifications']
     
     # List to store alert messages
     alert_messages = []
 
     # Check CPU usage
     if cpu > thresholds['cpu']:
-        alert_messages.append(f"ALERT: CPU usage is {cpu}% (Threshold: {thresholds['cpu']}%)")
+        alert_messages.append(f"CPU usage is {cpu}% (Threshold: {thresholds['cpu']}%)")
+    
+    if cpu_temp > thresholds['temperature']:
+        alert_messages.append(f"CPU TEMPERATURE usage is {cpu_temp}% (Threshold: {thresholds['temperature']}ºC)")
     
     # Check Memory usage
     if memory > thresholds['memory']:
-        alert_messages.append(f"ALERT: Memory usage is {memory}% (Threshold: {thresholds['memory']}%)")
+        alert_messages.append(f"Memory usage is {memory}% (Threshold: {thresholds['memory']}%)")
     
     # Check Disk usage
     if disk > thresholds['disk']:
-        alert_messages.append(f"ALERT: Disk usage is {disk}% (Threshold: {thresholds['disk']}%)")
+        alert_messages.append(f"Disk usage is {disk}% (Threshold: {thresholds['disk']}%)")
     
     # Check Network usage
     if network > thresholds['network']:
-        alert_messages.append(f"ALERT: Network usage is {network} Mbps (Threshold: {thresholds['network']} Mbps)")
+        alert_messages.append(f"Network usage is {network} Mbps (Threshold: {thresholds['network']} Mbps)")
 
     # If there are any alert messages, print and send them
     if alert_messages:
@@ -109,9 +111,8 @@ def check_thresholds(cpu, memory, disk, network):
             print(message)
 
         # Insert the messages into the database for all phones
-        for phone in notifications:
-            for message in alert_messages:
-                insert_alert(phone, message)
+        for message in alert_messages:
+            insert_alert(config['resources-alerts-channel'], message)
 
 # Functions to collect system information
 def get_cpu_usage():
@@ -186,7 +187,7 @@ def display_and_save_info():
     save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)
     
     # Check thresholds and insert alerts if needed
-    check_thresholds(cpu, memory_used_percentage, disk_used_percentage, network_receive_mbps)
+    check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, network_receive_mbps)
 
 # Main function
 if __name__ == "__main__":

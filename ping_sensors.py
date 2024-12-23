@@ -45,18 +45,11 @@ def insert_alert(phone, message):
     connection = connect_db('whatsapp')  # Connect to the WhatsApp DB
     cursor = connection.cursor()
 
-    # Load the config to get node info
-    config = load_config()
-    node = config.get('node', 'Unknown Node')
-
-    # Modify the message to include the node and timestamp
-    message_with_timestamp_and_node = f"*[{node}]* {message} \nDate: {get_current_time()}"
-
     # Insert alert into the alerts table
     cursor.execute(""" 
         INSERT INTO messages (phone, message)
         VALUES (%s, %s)
-    """, (phone, message_with_timestamp_and_node))
+    """, (phone, message))
 
     connection.commit()
     cursor.close()
@@ -85,23 +78,11 @@ def clean_old_pings():
 def ping_sensor(ip_address):
     max_attempts = 4  # Maximum number of attempts
     for attempt in range(max_attempts):
-        try:
-            # Perform the ping
-            response_time = ping(ip_address)
+        # Perform the ping
+        response_time = ping(ip_address, unit='ms')
             
-            # If the response time is None, it means the ping failed
-            if response_time is None:
-                if attempt == max_attempts - 1:
-                    # If it's the last attempt and it fails, return 0
-                    return 0
-                else:
-                    # If it's not the last attempt, continue trying
-                    continue
-
-            # Truncate the response time to two decimal places (milliseconds)
-            return math.trunc(response_time * 1000)
-        except Exception as e:
-            # If an error occurs (e.g., timeout or unreachable address)
+        # If the response time is None, it means the ping failed
+        if not response_time:
             if attempt == max_attempts - 1:
                 # If it's the last attempt and it fails, return 0
                 return 0
@@ -109,11 +90,14 @@ def ping_sensor(ip_address):
                 # If it's not the last attempt, continue trying
                 continue
 
+        # Truncate the response time to two decimal places
+        return math.trunc(response_time)
+
     return 0  # If all attempts fail, return 0
 
 # Function to get the current date and time as a formatted string
 def get_current_time():
-    return datetime.now().strftime('[%d %b %Y %H:%M Hs]')
+    return datetime.now().strftime('%d %b %Y %H:%M Hs')
 
 # Function to check and notify if the ping exceeds the threshold or if the ping is 0
 def check_ping_threshold(sensor_name, response_time, threshold):
@@ -122,16 +106,16 @@ def check_ping_threshold(sensor_name, response_time, threshold):
 
     if response_time == 0:
         # If ping is 0, send an alert saying the node is offline
-        for phone in config['notifications']:
-            message = f"ALERT: {sensor_name} did not respond!"
-            insert_alert(phone, message)
-        print(f"{get_current_time()} - ALERT: {sensor_name} did not respond!")
+        message = f"⚠️ *{sensor_name} not responding* ⚠️ \n\n*Node:* {node} \n*Date:* {get_current_time()}"
+        insert_alert(config['ping-alerts-channel'], message)
+
+        print(f"[{get_current_time()}] - {sensor_name} not responding on {node}")
     elif response_time > threshold:
         # If ping exceeds threshold, send an alert
-        for phone in config['notifications']:
-            message = f"ALERT: {sensor_name} ping is too high! \nResponse time: {response_time} ms"
-            insert_alert(phone, message)
-        print(f"{get_current_time()} - ALERT: {sensor_name} ping is too high. Response time: {response_time} ms")
+        message = f"⚠️ *{sensor_name} ping is too high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
+        insert_alert(config['ping-alerts-channel'], message)
+
+        print(f"[{get_current_time()}] - {sensor_name} ping is too high on {node}. Response time: {response_time} ms")
 
 # Function to collect ping data for all sensors
 def collect_and_save_ping_data():
@@ -146,9 +130,9 @@ def collect_and_save_ping_data():
         
         # Simplified output for online/offline status with color
         if response_time == 0:
-            print(f"{get_current_time()} Pinging {sensor['name']} ..... \033[31mOFFLINE\033[0m")  # Red for OFFLINE
+            print(f"[{get_current_time()}] Pinging {sensor['name']} ..... \033[31mOFFLINE\033[0m")  # Red for OFFLINE
         else:
-            print(f"{get_current_time()} Pinging {sensor['name']} ..... \033[32mONLINE {response_time}ms\033[0m")  # Green for ONLINE
+            print(f"[{get_current_time()}] Pinging {sensor['name']} ..... \033[32mONLINE {response_time}ms\033[0m")  # Green for ONLINE
 
         # Save the ping result to the system_monitoring database
         save_ping_to_db(sensor['name'], response_time)

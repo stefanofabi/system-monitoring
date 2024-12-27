@@ -66,7 +66,7 @@ def insert_alert(phone, message):
     config = load_config()
     node = config.get('node', 'Unknown Node') 
     
-    message_with_timestamp_and_node = f"⚠️ *Resource limit reached* ⚠️ \n\n*Node:* {node} \n*Date:* {current_datetime} \n\n{message}"
+    message_with_timestamp_and_node = f"⚠️ *Resource threshold reached* ⚠️ \n\n*Node:* {node} \n*Date:* {current_datetime} \n\n{message}"
     
     # Insert alert into the alerts table
     cursor.execute("""

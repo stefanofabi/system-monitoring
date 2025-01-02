@@ -112,11 +112,11 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
     
     # Check network receive rate
     if network_receive_mbps > thresholds['network']:
-        alert_message += f"Network receive usage is {math.trunc(network_receive_mbps)} Mbps\n"
+        alert_message += f"Network receive usage is {network_receive_mbps} Mbps\n"
 
     # Check network transmit rate
     if network_transmit_mbps > thresholds['network']:
-        alert_message += f"Network transmit usage is {math.trunc(network_transmit_mbps)} Mbps\n"
+        alert_message += f"Network transmit usage is {network_transmit_mbps} Mbps\n"
 
     # If there are any alert messages, send and print them
     if alert_message:
@@ -191,6 +191,16 @@ def display_and_save_info():
     disk_read, disk_write = get_disk_io()
     network_receive_mbps, network_transmit_mbps = get_network_io()
     cpu_temp = get_cpu_temp()
+
+    # Truncate all the parameters before passing to save_to_db and check_thresholds
+    cpu = math.trunc(cpu)
+    memory_used_percentage = math.trunc(memory_used_percentage)
+    disk_used_percentage = math.trunc(disk_used_percentage)
+    disk_read = math.trunc(disk_read)
+    disk_write = math.trunc(disk_write)
+    network_receive_mbps = math.trunc(network_receive_mbps)
+    network_transmit_mbps = math.trunc(network_transmit_mbps)
+    cpu_temp = math.trunc(cpu_temp) if cpu_temp is not None else None
     
     # Function to print with color
     def print_with_color(message, is_above_threshold):
@@ -200,12 +210,12 @@ def display_and_save_info():
     # Display results with color based on thresholds
     print_with_color(f"Total CPU Usage: {cpu}%", cpu > thresholds["cpu"])
     print_with_color(f"CPU Temperature: {cpu_temp}°C" if cpu_temp is not None else "CPU Temperature: Not Available", cpu_temp > thresholds["temperature"] if cpu_temp is not None else False)
-    print_with_color(f"Memory Used: {memory_used_percentage:.2f}%", memory_used_percentage > thresholds["memory"])
-    print_with_color(f"Disk Used: {disk_used_percentage:.2f}%", disk_used_percentage > thresholds["disk"])
-    print_with_color(f"Disk Read Speed: {disk_read:.2f} MB/s", disk_read > thresholds["io"])
-    print_with_color(f"Disk Write Speed: {disk_write:.2f} MB/s", disk_write > thresholds["io"])
-    print_with_color(f"Network Receive Speed: {network_receive_mbps:.2f} Mbps", network_receive_mbps > thresholds["network"])
-    print_with_color(f"Network Transmit Speed: {network_transmit_mbps:.2f} Mbps", network_transmit_mbps > thresholds["network"])
+    print_with_color(f"Memory Used: {memory_used_percentage}%", memory_used_percentage > thresholds["memory"])
+    print_with_color(f"Disk Used: {disk_used_percentage}%", disk_used_percentage > thresholds["disk"])
+    print_with_color(f"Disk Read Speed: {disk_read} MB/s", disk_read > thresholds["io"])
+    print_with_color(f"Disk Write Speed: {disk_write} MB/s", disk_write > thresholds["io"])
+    print_with_color(f"Network Receive Speed: {network_receive_mbps} Mbps", network_receive_mbps > thresholds["network"])
+    print_with_color(f"Network Transmit Speed: {network_transmit_mbps} Mbps", network_transmit_mbps > thresholds["network"])
 
     # Save results to the database
     save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)

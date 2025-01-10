@@ -18,6 +18,7 @@ CREATE TABLE sensors (
     ip VARCHAR(255) NOT NULL,
     threshold INT NOT NULL,
     failed INT DEFAULT 0, 
+    high-ping-count INT DEFAULT 0, 
     active BOOLEAN DEFAULT FALSE 
 );
 

@@ -134,20 +134,30 @@ def check_ping_threshold(sensor, response_time):
     else:
         # If the ping is successful (response time > 0), reset 'failed' count to 0
         sensor['failed'] = 0
-
+        
         # If ping exceeds threshold, send an alert
         if response_time > sensor['threshold']:
-            message = f"⚠️ *{sensor['name']} ping is high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
-            insert_alert(config['ping-alerts-channel'], message)
+            if sensor['high-ping-count'] > 5:
+                sensor['high-ping-count'] = 0
 
-            print(f"[{get_current_time()}] - {sensor['name']} ping is high on {node}. Response time: {response_time} ms")
+                message = f"⚠️ *{sensor['name']} ping is high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
+                insert_alert(config['ping-alerts-channel'], message)
 
-    # Update the 'failed' count and 'active' status in the database
-    cursor.execute("""
-        UPDATE sensors
-        SET failed = %s
-        WHERE id = %s
-    """, (sensor['failed'], sensor['id']))
+                print(f"[{get_current_time()}] - {sensor['name']} ping is high on {node}. Response time: {response_time} ms")
+            
+                cursor.execute("""
+                    UPDATE sensors
+                    SET high_ping_count = %s, failed = %s
+                    WHERE id = %s
+                """, (sensor['high_ping_count'], sensor['failed'], sensor['id']))
+            else: 
+                sensor['high_ping_count'] += 1
+                
+                cursor.execute("""
+                    UPDATE sensors
+                    SET high_ping_count = %s, failed = %s
+                    WHERE id = %s
+                """, (sensor['high_ping_count'], sensor['failed'], sensor['id']))
 
     connection.commit()  # Commit the changes
     cursor.close()

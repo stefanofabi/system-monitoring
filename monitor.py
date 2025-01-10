@@ -42,15 +42,15 @@ def clean_old_records():
     connection.close()
 
 # Save system stats to the system_monitoring database
-def save_to_db(cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp):
+def save_to_db(cpu, memory, disk, disk_read, disk_write, disk_wait, network_receive, network_transmit, cpu_temp):
     connection = connect_db('system_monitoring')
     cursor = connection.cursor()
 
-    # Insert data into the system_stats table
+    # Insert data into the system_stats table, including disk_wait
     cursor.execute("""
-        INSERT INTO system_stats (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp))
+        INSERT INTO system_stats (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp, disk_wait)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp, disk_wait))
 
     connection.commit()
     cursor.close()
@@ -78,7 +78,7 @@ def insert_alert(phone, message):
     cursor.close()
     connection.close()
 
-def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps):
+def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps):
     # Load the configuration and thresholds from the database
     config = load_config()
     thresholds = config['thresholds']
@@ -109,6 +109,10 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
     # Check disk write rate
     if disk_write > thresholds['io']:
         alert_message += f"Disk write usage is {disk_write} MB/s\n"
+
+    # Check disk write rate
+    if disk_wait > thresholds['iowait']:
+        alert_message += f"Disk wait is {disk_wait} ms\n"
     
     # Check network receive rate
     if network_receive_mbps > thresholds['network']:
@@ -153,6 +157,11 @@ def get_disk_io():
     disk_write = (current_disk.write_bytes - previous_disk.write_bytes) / (1024**2)  # Convert to MB/s
     return disk_read, disk_write
 
+# Function to get disk IO wait time
+def get_disk_wait():
+    cpu_times = psutil.cpu_times_percent(interval=1)
+    return cpu_times.iowait
+
 def get_network_io():
     previous_network = psutil.net_io_counters()
     time.sleep(1)
@@ -186,21 +195,23 @@ def display_and_save_info():
     thresholds = config["thresholds"]
     
     cpu = get_cpu_usage()
+    cpu_temp = get_cpu_temp()
     memory_used_percentage = get_memory()
     disk_used_percentage = get_disk_usage()
     disk_read, disk_write = get_disk_io()
+    disk_wait = get_disk_wait()
     network_receive_mbps, network_transmit_mbps = get_network_io()
-    cpu_temp = get_cpu_temp()
 
     # Truncate all the parameters before passing to save_to_db and check_thresholds
     cpu = math.trunc(cpu)
+    cpu_temp = math.trunc(cpu_temp) if cpu_temp is not None else None
     memory_used_percentage = math.trunc(memory_used_percentage)
     disk_used_percentage = math.trunc(disk_used_percentage)
     disk_read = math.trunc(disk_read)
     disk_write = math.trunc(disk_write)
+    disk_wait = math.trunc(disk_wait)
     network_receive_mbps = math.trunc(network_receive_mbps)
     network_transmit_mbps = math.trunc(network_transmit_mbps)
-    cpu_temp = math.trunc(cpu_temp) if cpu_temp is not None else None
     
     # Function to print with color
     def print_with_color(message, is_above_threshold):
@@ -214,14 +225,15 @@ def display_and_save_info():
     print_with_color(f"Disk Used: {disk_used_percentage}%", disk_used_percentage > thresholds["disk"])
     print_with_color(f"Disk Read Speed: {disk_read} MB/s", disk_read > thresholds["io"])
     print_with_color(f"Disk Write Speed: {disk_write} MB/s", disk_write > thresholds["io"])
+    print_with_color(f"Disk IO Wait: {disk_wait}%", disk_wait > thresholds["iowait"])
     print_with_color(f"Network Receive Speed: {network_receive_mbps} Mbps", network_receive_mbps > thresholds["network"])
     print_with_color(f"Network Transmit Speed: {network_transmit_mbps} Mbps", network_transmit_mbps > thresholds["network"])
 
     # Save results to the database
-    save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps, cpu_temp)
+    save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps, cpu_temp)
     
     # Check thresholds and insert alerts if needed
-    check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, network_receive_mbps, network_transmit_mbps)
+    check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps)
 
 # Main function
 if __name__ == "__main__":

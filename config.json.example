@@ -23,6 +23,7 @@
         "disk": 90,
         "network": 100,
         "io": 50,
+        "iowait": 10,
         "failures":  5
     }
 }

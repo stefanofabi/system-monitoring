@@ -1,13 +1,14 @@
 CREATE TABLE system_stats (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cpu FLOAT,
+    cpu_temp FLOAT,
     memory FLOAT,
     disk FLOAT,
     disk_read FLOAT,
     disk_write FLOAT,
+    disk_wait FLOAT,
     network_receive FLOAT,
     network_transmit FLOAT,
-    cpu_temp FLOAT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

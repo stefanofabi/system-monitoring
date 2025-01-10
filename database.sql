@@ -35,4 +35,5 @@ VALUES
     ('Telecom Argentina', 'telecom.4evergaming.com.ar', 30),
     ('Claro', 'claro.4evergaming.com.ar', 30),
     ('Telecentro', 'telecentro.4evergaming.com.ar', 30),
-    ('Gigared', 'gigared.4evergaming.com.ar', 30);
+    ('Gigared', 'gigared.4evergaming.com.ar', 30),
+    ('Movistar', 'movistar.4evergaming.com.ar', 30);

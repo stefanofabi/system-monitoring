@@ -1,9 +1,12 @@
-import psutil
-import time
 import mysql.connector
 import json
 from datetime import datetime, timedelta
 import math
+
+from functions.cpu import get_cpu_usage, get_cpu_temp
+from functions.memory import get_memory
+from functions.disk import get_disk_usage, get_disk_io, get_disk_wait
+from functions.network import get_network_io
 
 # Load database configuration from a JSON file
 def load_config():
@@ -133,61 +136,6 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
 # Function to get the current date and time as a formatted string
 def get_current_time():
     return datetime.now().strftime('%d %b %Y %H:%M Hs')
-
-# Functions to collect system information
-def get_cpu_usage():
-    cpu_total = psutil.cpu_percent(interval=1)
-    return cpu_total
-
-def get_memory():
-    memory = psutil.virtual_memory()
-    memory_used_percentage = memory.percent  # Get the percentage of memory used directly from psutil
-    return memory_used_percentage
-
-def get_disk_usage():
-    disk = psutil.disk_usage('/')
-    disk_used_percentage = disk.percent  # Get the percentage of disk used directly from psutil
-    return disk_used_percentage
-
-def get_disk_io():
-    previous_disk = psutil.disk_io_counters()
-    time.sleep(1)
-    current_disk = psutil.disk_io_counters()
-    disk_read = (current_disk.read_bytes - previous_disk.read_bytes) / (1024**2)  # Convert to MB/s
-    disk_write = (current_disk.write_bytes - previous_disk.write_bytes) / (1024**2)  # Convert to MB/s
-    return disk_read, disk_write
-
-# Function to get disk IO wait time
-def get_disk_wait():
-    cpu_times = psutil.cpu_times_percent(interval=1)
-    return cpu_times.iowait
-
-def get_network_io():
-    previous_network = psutil.net_io_counters()
-    time.sleep(1)
-    current_network = psutil.net_io_counters()
-    network_receive_mb = (current_network.bytes_recv - previous_network.bytes_recv) / (1024**2)  # Convert to MB/s
-    network_transmit_mb = (current_network.bytes_sent - previous_network.bytes_sent) / (1024**2)  # Convert to MB/s
-
-    # Convert from MB/s to Mbps
-    network_receive_mbps = network_receive_mb * 8
-    network_transmit_mbps = network_transmit_mb * 8
-    return network_receive_mbps, network_transmit_mbps
-
-def get_cpu_temp():
-    try:
-        temps = psutil.sensors_temperatures()
-        if 'coretemp' in temps:
-            # On some systems, temperatures are reported under 'coretemp'
-            temp = temps['coretemp'][0].current
-        elif 'cpu_thermal' in temps:
-            # On some systems, temperatures are reported under 'cpu_thermal'
-            temp = temps['cpu_thermal'][0].current
-        else:
-            temp = None
-    except (AttributeError, KeyError):
-        temp = None
-    return temp
 
 def display_and_save_info():
     # Load thresholds from config.json

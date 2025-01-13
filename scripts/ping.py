@@ -137,8 +137,8 @@ def check_ping_threshold(sensor, response_time):
         
         # If ping exceeds threshold, send an alert
         if response_time > sensor['threshold']:
-            if sensor['high-ping-count'] > 5:
-                sensor['high-ping-count'] = 0
+            if sensor['high_ping_count'] > 5:
+                sensor['high_ping_count'] = 0
 
                 message = f"⚠️ *{sensor['name']} ping is high* ⚠️ \n\n*Node:* {node} \n*Response time:* {response_time} ms \n*Date:* {get_current_time()}"
                 insert_alert(config['ping-alerts-channel'], message)
@@ -191,11 +191,11 @@ def get_sensors_from_db():
     connection = connect_db('system_monitoring')  # Connect to the system_monitoring DB
     cursor = connection.cursor(dictionary=True)
 
-    # Select all sensors from the sensors table, including the thresholds
+    # Select all sensors from the sensors table
     cursor.execute("""
-        SELECT id, name, ip, threshold, failed, active
+        SELECT id, name, ip, threshold, failed, high_ping_count, active
         FROM sensors
-        WHERE active = TRUE  -- Only get active sensors
+        WHERE active = TRUE
     """)
     
     sensors = cursor.fetchall()  # Fetch all the sensors

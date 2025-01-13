@@ -122,15 +122,20 @@ def check_ping_threshold(sensor, response_time):
         if sensor['failed'] >= failure_threshold:
             cursor.execute("""
                 UPDATE sensors
-                SET active = FALSE
+                SET failed = %s, active = FALSE
                 WHERE id = %s
-            """, (sensor['id'],))
+            """, (sensor['failed'], sensor['id'],))
 
             message = f"[{get_current_time()}] - {sensor['name']} has been deactivated due to multiple failures"
             insert_alert(config['ping-alerts-channel'], message)
 
             print(f"\033[31m[{get_current_time()}] - {sensor['name']} has been deactivated due to multiple failures\033[0m")
-
+        else: 
+            cursor.execute("""
+                UPDATE sensors
+                SET failed = %s
+                WHERE id = %s
+            """, (sensor['failed'], sensor['id'],))
     else:
         # If the ping is successful (response time > 0), reset 'failed' count to 0
         sensor['failed'] = 0

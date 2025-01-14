@@ -44,16 +44,47 @@ def clean_old_records():
     cursor.close()
     connection.close()
 
-# Save system stats to the system_monitoring database
-def save_to_db(cpu, memory, disk, disk_read, disk_write, disk_wait, network_receive, network_transmit, cpu_temp):
+def save_to_db(cpu, cpu_temp, memory, disk, disk_read, disk_write, disk_wait, network_receive, network_transmit):
+    latest_record = get_latest_system_stats()
+
+    config = load_config()
+    thresholds = config['thresholds']
+    
     connection = connect_db('system_monitoring')
     cursor = connection.cursor()
 
-    # Insert data into the system_stats table, including disk_wait
+    cpu_count = latest_record['cpu_count'] + 1 if cpu > thresholds['cpu'] else 0
+    cpu_temp_count = latest_record['cpu_temp_count'] + 1 if cpu_temp > thresholds['temperature'] else 0
+    memory_count = latest_record['memory_count'] + 1 if memory > thresholds['memory'] else 0
+    disk_count = latest_record['disk_count'] + 1 if disk > thresholds['disk'] else 0
+    disk_read_count = latest_record['disk_read_count'] + 1 if disk_read > thresholds['io'] else 0
+    disk_write_count = latest_record['disk_write_count'] + 1 if disk_write > thresholds['io'] else 0
+    disk_wait_count = latest_record['disk_wait_count'] + 1 if disk_wait > thresholds['iowait'] else 0
+    network_receive_count = latest_record['network_receive_count'] + 1 if network_receive > thresholds['network'] else 0
+    network_transmit_count = latest_record['network_transmit_count'] + 1 if network_transmit > thresholds['network'] else 0
+
     cursor.execute("""
-        INSERT INTO system_stats (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp, disk_wait)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (cpu, memory, disk, disk_read, disk_write, network_receive, network_transmit, cpu_temp, disk_wait))
+        INSERT INTO system_stats (
+            cpu, cpu_temp, memory, disk, disk_read, disk_write, network_receive, 
+            network_transmit, disk_wait, 
+            cpu_count, cpu_temp_count, memory_count, disk_count, 
+            disk_read_count, disk_write_count, disk_wait_count, 
+            network_receive_count, network_transmit_count
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s
+        )
+    """, (
+        cpu, cpu_temp, 
+        memory, 
+        disk, disk_read, disk_write, 
+        network_receive, network_transmit, disk_wait,
+        cpu_count, cpu_temp_count, memory_count, disk_count, 
+        disk_read_count, disk_write_count, disk_wait_count, 
+        network_receive_count, network_transmit_count
+    ))
 
     connection.commit()
     cursor.close()
@@ -88,42 +119,25 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
     
     # Variable to store the concatenated alert messages
     alert_message = ""
+    
+    # Load the counts from the database
+    latest_record = get_latest_system_stats()  
 
-    # Check CPU usage
-    if cpu > thresholds['cpu']:
-        alert_message += f"CPU usage is {cpu}%\n"
-    
-    # Check CPU temperature
-    if cpu_temp > thresholds['temperature']:
-        alert_message += f"CPU TEMPERATURE usage is {cpu_temp}ºC\n"
-    
-    # Check memory usage
-    if memory_used_percentage > thresholds['memory']:
-        alert_message += f"Memory usage is {memory_used_percentage}%\n"
-    
-    # Check disk usage
-    if disk_used_percentage > thresholds['disk']:
-        alert_message += f"Disk usage is {disk_used_percentage}%\n"
-    
-    # Check disk read rate
-    if disk_read > thresholds['io']:
-        alert_message += f"Disk read usage is {disk_read} MB/s\n"
-    
-    # Check disk write rate
-    if disk_write > thresholds['io']:
-        alert_message += f"Disk write usage is {disk_write} MB/s\n"
+    # Helper function to check thresholds and generate messages
+    def check_and_alert(resource_name, value, threshold, count, count_threshold, unit=""):
+        if value > threshold and count > count_threshold:
+            return f"{resource_name} usage is {value}{unit}\n"
+        return ""
 
-    # Check disk write rate
-    if disk_wait > thresholds['iowait']:
-        alert_message += f"Disk wait is {disk_wait} ms\n"
-    
-    # Check network receive rate
-    if network_receive_mbps > thresholds['network']:
-        alert_message += f"Network receive usage is {network_receive_mbps} Mbps\n"
-
-    # Check network transmit rate
-    if network_transmit_mbps > thresholds['network']:
-        alert_message += f"Network transmit usage is {network_transmit_mbps} Mbps\n"
+    alert_message += check_and_alert("CPU", cpu, thresholds['cpu'], latest_record['cpu_count'], 5, "%")
+    alert_message += check_and_alert("CPU Temperature", cpu_temp, thresholds['temperature'], latest_record['cpu_temp_count'], 5, "ºC")
+    alert_message += check_and_alert("Memory", memory_used_percentage, thresholds['memory'], latest_record['memory_count'], 5, "%")
+    alert_message += check_and_alert("Disk", disk_used_percentage, thresholds['disk'], latest_record['disk_count'], 5, "%")
+    alert_message += check_and_alert("Disk Read", disk_read, thresholds['io'], latest_record['disk_read_count'], 5, " MB/s")
+    alert_message += check_and_alert("Disk Write", disk_write, thresholds['io'], latest_record['disk_write_count'], 5, " MB/s")
+    alert_message += check_and_alert("Disk Wait", disk_wait, thresholds['iowait'], latest_record['disk_wait_count'], 5, " ms")
+    alert_message += check_and_alert("Network Receive", network_receive_mbps, thresholds['network'], latest_record['network_receive_count'], 5, " Mbps")
+    alert_message += check_and_alert("Network Transmit", network_transmit_mbps, thresholds['network'], latest_record['network_transmit_count'], 5, " Mbps")
 
     # If there are any alert messages, send and print them
     if alert_message:
@@ -132,6 +146,53 @@ def check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage
         
         # Send the alert message
         insert_alert(config['resources-alerts-channel'], alert_message)
+
+def get_latest_system_stats():
+    """
+    Gets the last full record from the system_stats table
+    """
+    
+    connection = connect_db('system_monitoring')
+    cursor = connection.cursor(dictionary=True) 
+
+    query = """
+        SELECT *
+        FROM system_stats
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """
+
+    cursor.execute(query)  
+    result = cursor.fetchone() 
+    
+    cursor.close()
+    connection.close()
+
+    if result:
+        return result  
+    else:
+        return {
+            'id': None,
+            'cpu': 0.0,
+            'cpu_temp': 0.0,
+            'memory': 0.0,
+            'disk': 0.0,
+            'disk_read': 0.0,
+            'disk_write': 0.0,
+            'disk_wait': 0.0,
+            'network_receive': 0.0,
+            'network_transmit': 0.0,
+            'cpu_count': 0,
+            'cpu_temp_count': 0,
+            'memory_count': 0,
+            'disk_count': 0,
+            'disk_read_count': 0,
+            'disk_write_count': 0,
+            'disk_wait_count': 0,
+            'network_receive_count': 0,
+            'network_transmit_count': 0,
+            'timestamp': None,
+        }
 
 # Function to get the current date and time as a formatted string
 def get_current_time():
@@ -178,7 +239,7 @@ def display_and_save_info():
     print_with_color(f"Network Transmit Speed: {network_transmit_mbps} Mbps", network_transmit_mbps > thresholds["network"])
 
     # Save results to the database
-    save_to_db(cpu, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps, cpu_temp)
+    save_to_db(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps)
     
     # Check thresholds and insert alerts if needed
     check_thresholds(cpu, cpu_temp, memory_used_percentage, disk_used_percentage, disk_read, disk_write, disk_wait, network_receive_mbps, network_transmit_mbps)

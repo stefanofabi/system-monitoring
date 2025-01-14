@@ -9,6 +9,15 @@ CREATE TABLE system_stats (
     disk_wait FLOAT,
     network_receive FLOAT,
     network_transmit FLOAT,
+    cpu_count INT DEFAULT 0,
+    cpu_temp_count INT DEFAULT 0,
+    memory_count INT DEFAULT 0,
+    disk_count INT DEFAULT 0,
+    disk_read_count INT DEFAULT 0,
+    disk_write_count INT DEFAULT 0,
+    disk_wait_count INT DEFAULT 0,
+    network_receive_count INT DEFAULT 0,
+    network_transmit_count INT DEFAULT 0,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

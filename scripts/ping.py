@@ -105,7 +105,7 @@ def check_ping_threshold(sensor, response_time):
     node = config.get('node', 'Unknown Node')
     failure_threshold = config['thresholds']['failures']
 
-    connection = connect_db('system_monitoring')  # Connect to the system_monitoring DB
+    connection = connect_db('system_monitoring')  
     cursor = connection.cursor()
 
     # If the ping response time is 0 (offline)
@@ -163,6 +163,13 @@ def check_ping_threshold(sensor, response_time):
                     SET high_ping_count = %s, failed = %s
                     WHERE id = %s
                 """, (sensor['high_ping_count'], sensor['failed'], sensor['id']))
+        else:
+            # all ok, ping is low and sensor is responding
+            cursor.execute("""
+                    UPDATE sensors
+                    SET high_ping_count = 0, failed = 0
+                    WHERE id = %s
+                """, (sensor['id'],))
 
     connection.commit()  # Commit the changes
     cursor.close()

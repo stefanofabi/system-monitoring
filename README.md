@@ -44,8 +44,8 @@ Then set up a cron every 5 minutes:
 ```bash
 crontab -e
 
-*/5 * * * * cd /root/system-monitoring && /root/system-monitoring/run_stats.sh >> /root/system-monitoring/stats.log 2>&1
+*/5 * * * * cd /root/system-monitoring && /root/system-monitoring/run_stats.sh > /root/system-monitoring/stats.log 2>&1
 
-*/1 * * * * cd /root/system-monitoring && /root/system-monitoring/run_ping.sh >> /root/system-monitoring/ping.log 2>&1
+*/1 * * * * cd /root/system-monitoring && /root/system-monitoring/run_ping.sh > /root/system-monitoring/ping.log 2>&1
 
 ```

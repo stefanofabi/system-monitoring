@@ -20,6 +20,7 @@
         "cpu": 30,
         "temperature": 85,
         "memory": 90,
+        "swap": 90,
         "disk": 90,
         "network": 100,
         "io": 50,
